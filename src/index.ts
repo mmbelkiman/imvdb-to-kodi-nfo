@@ -2,13 +2,14 @@ import fs from "fs";
 import path from "path";
 import chalk from "chalk";
 import boxen from "boxen";
-import {prompt} from "enquirer";
+import { prompt } from "enquirer";
 import cliProgress from "cli-progress";
 import dotenv from "dotenv";
-import {searchVideo} from "./imvdbApi";
-import {getAllVideoFiles} from "./utils";
-import {generateNFO} from "./nfoGenerator";
-import {fetchTrackInfoFromTheAudioDB} from "./theaudiodbApi";
+import ora from "ora";
+import { searchVideo } from "./imvdbApi";
+import { getAllVideoFiles } from "./utils";
+import { generateNFO } from "./nfoGenerator";
+import { fetchTrackInfoFromTheAudioDB } from "./theaudiodbApi";
 
 dotenv.config();
 
@@ -37,11 +38,21 @@ console.log(
     )
 );
 
+console.log(chalk.yellow("\n🔍 Reading files, please wait. This process may take a while...\n"));
+
 const notFound: string[] = [];
 
 async function main() {
-    const files = await getAllVideoFiles(basePath);
-    console.log(chalk.gray(`📁 ${files.length} video files found.\n`));
+    const spinner = ora({
+        text: "🔍 Reading files, please wait. This process may take a while...",
+        color: "yellow",
+        spinner: "dots",
+    }).start();
+
+    let files = await getAllVideoFiles(basePath);
+    files = files.filter(f => !path.basename(f).startsWith("._"));
+
+    spinner.succeed(`📁 ${files.length} video files found (after filtering).\n`);
 
     if (files.length > 20) {
         const { proceed } = await prompt<{ proceed: boolean }>({
@@ -113,7 +124,6 @@ async function main() {
     }
 
     bar.stop();
-
     console.log("\n");
 
     if (notFound.length > 0) {
