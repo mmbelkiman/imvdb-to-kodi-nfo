@@ -1,22 +1,30 @@
 {
   "name": "imvdb-to-kodi-nfo",
-  "version": "1.0.0",
   "description": "",
-  "main": "index.js",
+  "version": "1.0.0",
+  "main": "dist/index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "start": "ts-node index.ts",
+    "dev": "ts-node-dev --respawn index.ts",
+    "build": "tsc"
   },
   "keywords": [],
-  "author": "",
+  "author": "Marcelo Belkiman",
   "license": "ISC",
   "dependencies": {
     "axios": "^1.12.2",
-    "dotenv": "^17.2.3",
-    "xmlbuilder2": "^3.1.1"
+    "dayjs": "^1.11.18",
+    "xmlbuilder2": "^3.1.1",
+    "boxen": "^5.1.2",
+    "chalk": "^4.1.2",
+    "cli-progress": "^3.12.0",
+    "dotenv": "^17.2.1",
+    "enquirer": "^2.4.1"
   },
   "devDependencies": {
-    "@types/node": "^24.7.2",
+    "@types/cli-progress": "^3.11.6",
+    "@types/node": "^24.1.0",
     "ts-node": "^10.9.2",
-    "typescript": "^5.9.3"
+    "typescript": "^5.8.3"
   }
 }
