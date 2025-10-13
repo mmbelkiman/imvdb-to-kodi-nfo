@@ -50,7 +50,7 @@ async function main() {
     }).start();
 
     let files = await getAllVideoFiles(basePath);
-    files = files.filter(f => !path.basename(f).startsWith("._"));
+    files = files.filter((f) => !path.basename(f).startsWith("._"));
 
     spinner.succeed(`📁 ${files.length} video files found (after filtering).\n`);
 
@@ -89,9 +89,7 @@ async function main() {
             continue;
         }
 
-        const [artist, title] = fileName
-            .replace(path.extname(file), "")
-            .split(" - ");
+        const [artist, title] = fileName.replace(path.extname(file), "").split(" - ");
 
         if (!artist || !title) {
             console.log(chalk.yellow(`⚠️  Invalid name: ${fileName}`));
@@ -110,9 +108,25 @@ async function main() {
             }
 
             const artistName = video.artists?.[0]?.name || "";
+            const folderArtist = path.basename(path.dirname(file));
+
+            if (
+                folderArtist.toLowerCase().trim() !== artistName.toLowerCase().trim()
+            ) {
+                console.log(
+                    chalk.red(
+                        `❌ Artist not match: ${fileName}\n   Folder: "${folderArtist}" | API: "${artistName}"`
+                    )
+                );
+                notFound.push(fileName);
+                continue;
+            }
+
             const audioDB = await fetchTrackInfoFromTheAudioDB(artistName, title);
             if (!audioDB) {
-                console.log(chalk.yellow(`⚠️  [AudioDB] Not found: ${artistName} - ${title}`));
+                console.log(
+                    chalk.yellow(`⚠️  [AudioDB] Not found: ${artistName} - ${title}`)
+                );
             }
 
             generateNFO({ outputDir: nfoPath, video, audioDB });

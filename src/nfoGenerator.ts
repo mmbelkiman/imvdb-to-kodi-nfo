@@ -8,6 +8,16 @@ interface GenerateNFOOptions {
     outputDir: string;
 }
 
+function escapeXML(str?: string): string {
+    if (!str) return "";
+    return str
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&apos;");
+}
+
 export function generateNFO({video, outputDir, audioDB}: GenerateNFOOptions) {
     const {
         title,
@@ -23,7 +33,6 @@ export function generateNFO({video, outputDir, audioDB}: GenerateNFOOptions) {
             ? released_at
             : String(released_at || "").slice(0, 4) || "";
 
-
     const plot =
         audioDB?.strDescriptionEN ||
         description ||
@@ -38,19 +47,19 @@ export function generateNFO({video, outputDir, audioDB}: GenerateNFOOptions) {
                 .map((g) => g!.trim())
         )
     );
-    const genreXML = genreList.map((g) => `  <genre>${g}</genre>`).join("\n");
+    const genreXML = genreList.map((g) => `  <genre>${escapeXML(g)}</genre>`).join("\n");
 
     const xml = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <musicvideo>
-  <title>${title || ""}</title>
+  <title>${escapeXML(title)}</title>
   <year>${year}</year>
-  <artist>${artistName}</artist>
+  <artist>${escapeXML(artistName)}</artist>
   <director></director>
-  <album>${album}</album>
+  <album>${escapeXML(album)}</album>
 ${genreXML || "  <genre></genre>"}
   <track></track>
   <runtime></runtime>
-  <plot>${plot}</plot>
+  <plot>${escapeXML(plot)}</plot>
   <studio></studio>
   <id>${id || ""}</id>
   <createdate>${getCurrentDate()}</createdate>
