@@ -2,14 +2,14 @@ import fs from "fs";
 import path from "path";
 import chalk from "chalk";
 import boxen from "boxen";
-import {prompt} from "enquirer";
+import { prompt } from "enquirer";
 import cliProgress from "cli-progress";
 import dotenv from "dotenv";
 import ora from "ora";
-import {searchVideo} from "./api/imvdbApi";
-import {getAllVideoFiles, stringSimilarity} from "./utils";
-import {generateNFO} from "./nfoGenerator";
-import {fetchTrackInfoFromTheAudioDB} from "./api/theAudiodbApi";
+import { searchVideo } from "./imvdbApi";
+import { getAllVideoFiles, stringSimilarity } from "./utils";
+import { generateNFO } from "./nfoGenerator";
+import { fetchTrackInfoFromTheAudioDB } from "./theaudiodbApi";
 
 dotenv.config();
 
