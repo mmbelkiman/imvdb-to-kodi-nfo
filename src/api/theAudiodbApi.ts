@@ -1,11 +1,31 @@
 export interface TheAudioDBTrack {
-    idTrack: string;
+    /**Music Title*/
     strTrack: string;
+    idTrack: string;
+
+    /**Album Title*/
     strAlbum: string;
+    idAlbum: string | null,
+
+    /**Artist Name*/
+    strArtist: string | null,
+    idArtist:  string | null,
+
     strGenre: string;
     strStyle: string;
     strDescriptionEN: string;
     intYearReleased: string;
+
+    idLyric: string,
+    idIMVDB: string | null,
+    strArtistAlternate: string | null,
+    intCD: string | null,
+    intDuration: string | null,
+    strMood: string | null,
+    strTheme: string | null,
+    strMusicVid: string |null,
+    strMusicVidDirector: string | null,
+    strMusicVidCompany: string | null,
 }
 
 export interface TheAudioDBResponse {
@@ -36,7 +56,7 @@ export async function fetchTrackInfoFromTheAudioDB(
 
         return track;
     } catch (err) {
-        console.error("❌ Error fetching from TheAudioDB:", err);
+        console.error(" ❌ Error fetching from TheAudioDB:", err);
         return undefined;
     }
 }

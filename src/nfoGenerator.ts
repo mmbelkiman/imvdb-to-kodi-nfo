@@ -1,12 +1,7 @@
 import fs from "fs";
-import {TheAudioDBTrack} from "./theaudiodbApi";
-import {IMVDBVideo} from "./imvdbApi";
+import {TheAudioDBTrack} from "./api/theAudiodbApi";
+import {IMVDBVideo} from "./api/imvdbApi";
 
-interface GenerateNFOOptions {
-    video: IMVDBVideo;
-    audioDB?: TheAudioDBTrack;
-    outputDir: string;
-}
 
 function escapeXML(str?: string): string {
     if (!str) return "";
@@ -18,27 +13,28 @@ function escapeXML(str?: string): string {
         .replace(/'/g, "&apos;");
 }
 
-export function generateNFO({video, outputDir, audioDB}: GenerateNFOOptions) {
-    const {
-        title,
-        released_at,
-        artists,
-        description,
-        id,
-    } = video;
+export function generateNFO({video, outputDir, audioDB}: {
+    video?: IMVDBVideo | null;
+    audioDB?: TheAudioDBTrack;
+    outputDir: string;
+}) {
+    const id = video?.id || "";
+    const released_at = video?.released_at || audioDB?.intYearReleased || null;
+    const title = video?.title || audioDB?.strTrack || "Unknown Title";
+    const artistName = video?.artists?.[0]?.name || audioDB?.strArtist|| "";
+    const album = audioDB?.strAlbum || "";
+    const director = audioDB?.strMusicVidDirector || "";
+    const studio = audioDB?.strMusicVidCompany || "";
 
-    const artistName = artists?.[0]?.name || "";
+    const plot =
+        video?.description ||
+        audioDB?.strDescriptionEN ||
+        "This Music Video could not be identified.";
+
     const year =
         typeof released_at === "number"
             ? released_at
             : String(released_at || "").slice(0, 4) || "";
-
-    const plot =
-        audioDB?.strDescriptionEN ||
-        description ||
-        "This Music Video could not be identified.";
-
-    const album = audioDB?.strAlbum || "";
 
     const genreList = Array.from(
         new Set(
@@ -47,21 +43,21 @@ export function generateNFO({video, outputDir, audioDB}: GenerateNFOOptions) {
                 .map((g) => g!.trim())
         )
     );
-    const genreXML = genreList.map((g) => `  <genre>${escapeXML(g)}</genre>`).join("\n");
 
+    const genreXML = genreList.map((g) => `  <genre>${escapeXML(g)}</genre>`).join("\n");
     const xml = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <musicvideo>
   <title>${escapeXML(title)}</title>
   <year>${year}</year>
   <artist>${escapeXML(artistName)}</artist>
-  <director></director>
+  <director>${escapeXML(director)}</director>
   <album>${escapeXML(album)}</album>
 ${genreXML || "  <genre></genre>"}
   <track></track>
   <runtime></runtime>
   <plot>${escapeXML(plot)}</plot>
-  <studio></studio>
-  <id>${id || ""}</id>
+  <studio>${escapeXML(studio)}</studio>
+  <id>${id }</id>
   <createdate>${getCurrentDate()}</createdate>
 </musicvideo>`;
 

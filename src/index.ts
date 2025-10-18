@@ -2,14 +2,14 @@ import fs from "fs";
 import path from "path";
 import chalk from "chalk";
 import boxen from "boxen";
-import { prompt } from "enquirer";
+import {prompt} from "enquirer";
 import cliProgress from "cli-progress";
 import dotenv from "dotenv";
 import ora from "ora";
-import { searchVideo } from "./imvdbApi";
-import { getAllVideoFiles } from "./utils";
-import { generateNFO } from "./nfoGenerator";
-import { fetchTrackInfoFromTheAudioDB } from "./theaudiodbApi";
+import {searchVideo} from "./api/imvdbApi";
+import {getAllVideoFiles, stringSimilarity} from "./utils";
+import {generateNFO} from "./nfoGenerator";
+import {fetchTrackInfoFromTheAudioDB} from "./api/theAudiodbApi";
 
 dotenv.config();
 
@@ -55,7 +55,7 @@ async function main() {
     spinner.succeed(`📁 ${files.length} video files found (after filtering).\n`);
 
     if (files.length > 20) {
-        const { proceed } = await prompt<{ proceed: boolean }>({
+        const {proceed} = await prompt<{ proceed: boolean }>({
             type: "confirm",
             name: "proceed",
             message: `⚠️  This will process ${files.length} files. Continue?`,
@@ -100,36 +100,35 @@ async function main() {
         await new Promise((resolve) => setTimeout(resolve, 3000));
 
         try {
-            const video = await searchVideo(artist.trim(), title.trim());
-            if (!video) {
+            const videoData = await searchVideo(artist.trim(), title.trim());
+            const artistName = videoData?.artists?.[0]?.name || artist.trim();
+            const folderArtist = path.basename(path.dirname(file));
+
+            const audioData = await fetchTrackInfoFromTheAudioDB(artistName, title);
+            if (!audioData) {
+                console.log(
+                    chalk.yellow(`⚠️  [AudioDB] Not found: ${artistName} - ${title}`)
+                );
+            }
+
+            if (!videoData && !audioData) {
                 console.log(chalk.red(`❌ Not found: ${fileName}`));
                 notFound.push(fileName);
                 continue;
             }
 
-            const artistName = video.artists?.[0]?.name || "";
-            const folderArtist = path.basename(path.dirname(file));
-
-            if (
-                folderArtist.toLowerCase().trim() !== artistName.toLowerCase().trim()
-            ) {
+            const similarity = stringSimilarity(folderArtist, artistName);
+            if (similarity < 99) {
                 console.log(
                     chalk.red(
-                        `❌ Artist not match: ${fileName}\n   Folder: "${folderArtist}" | API: "${artistName}"`
+                        `   ❌ Artist not match: ${fileName}\n   Folder: "${folderArtist}" | API: "${artistName}", similarity: ${similarity.toFixed(2)}%`
                     )
                 );
                 notFound.push(fileName);
                 continue;
             }
 
-            const audioDB = await fetchTrackInfoFromTheAudioDB(artistName, title);
-            if (!audioDB) {
-                console.log(
-                    chalk.yellow(`⚠️  [AudioDB] Not found: ${artistName} - ${title}`)
-                );
-            }
-
-            generateNFO({ outputDir: nfoPath, video, audioDB });
+            generateNFO({outputDir: nfoPath, video: videoData, audioDB: audioData});
             console.log(chalk.green(`✅ NFO created: ${fileName}`));
         } catch (err) {
             console.error(chalk.red(`💥 Error at ${fileName}:`), err);
@@ -141,12 +140,13 @@ async function main() {
     console.log("\n");
 
     if (notFound.length > 0) {
+        console.log("\n");
         console.log(
             boxen(
                 chalk.red("🚫 Some files could not be processed:") +
                 "\n" +
                 notFound.map((f) => chalk.gray(`- ${f}`)).join("\n"),
-                { padding: 1, borderColor: "red", margin: 1 }
+                {padding: 1, borderColor: "red", margin: 1, borderStyle: 'double'}
             )
         );
     } else {
@@ -155,6 +155,7 @@ async function main() {
                 padding: 1,
                 borderColor: "green",
                 margin: 1,
+                borderStyle: 'round'
             })
         );
     }
