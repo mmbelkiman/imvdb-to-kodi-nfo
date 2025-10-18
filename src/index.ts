@@ -2,14 +2,15 @@ import fs from "fs";
 import path from "path";
 import chalk from "chalk";
 import boxen from "boxen";
-import { prompt } from "enquirer";
+import {prompt} from "enquirer";
 import cliProgress from "cli-progress";
 import dotenv from "dotenv";
 import ora from "ora";
-import { searchVideo } from "./imvdbApi";
-import { getAllVideoFiles, stringSimilarity } from "./utils";
-import { generateNFO } from "./nfoGenerator";
-import { fetchTrackInfoFromTheAudioDB } from "./theaudiodbApi";
+import {getAllVideoFiles, stringSimilarity} from "./utils";
+import {generateNFO} from "./nfoGenerator";
+import {fetchTrackInfoFromTheAudioDB} from "./api/theAudiodbApi";
+import {searchVideo} from "./api/imvdbApi";
+import {Logger} from "./logger";
 
 dotenv.config();
 
@@ -20,6 +21,8 @@ if (!basePath) {
     console.log(chalk.cyan("   npm start -- '/path/to/music-videos'"));
     process.exit(1);
 }
+const logger = Logger.getInstance();
+logger.init(basePath);
 
 console.log(
     boxen(
@@ -38,7 +41,7 @@ console.log(
     )
 );
 
-console.log(chalk.yellow("\n🔍 Reading files, please wait. This process may take a while...\n"));
+logger.log(chalk.yellow("\n🔍 Reading files, please wait. This process may take a while...\n"));
 
 const notFound: string[] = [];
 
@@ -62,7 +65,7 @@ async function main() {
             initial: true,
         });
         if (!proceed) {
-            console.log(chalk.yellow("🚫 Operation cancelled by user."));
+            logger.log(chalk.yellow("🚫 Operation cancelled by user."));
             process.exit(0);
         }
     }
@@ -85,14 +88,14 @@ async function main() {
         bar.increment();
 
         if (fs.existsSync(nfoPath)) {
-            console.log(chalk.gray(`⏭️  Skipping (NFO exists): ${fileName}`));
+            logger.log(chalk.gray(`⏭️  Skipping (NFO exists): ${fileName}`));
             continue;
         }
 
         const [artist, title] = fileName.replace(path.extname(file), "").split(" - ");
 
         if (!artist || !title) {
-            console.log(chalk.yellow(`⚠️  Invalid name: ${fileName}`));
+            logger.log(chalk.yellow(`⚠️  Invalid name: ${fileName}`));
             notFound.push(fileName);
             continue;
         }
@@ -106,32 +109,30 @@ async function main() {
 
             const audioData = await fetchTrackInfoFromTheAudioDB(artistName, title);
             if (!audioData) {
-                console.log(
-                    chalk.yellow(`⚠️  [AudioDB] Not found: ${artistName} - ${title}`)
-                );
+                logger.log(chalk.yellow(`⚠️  [AudioDB] Not found: ${artistName} - ${title}`));
             }
 
             if (!videoData && !audioData) {
-                console.log(chalk.red(`❌ Not found: ${fileName}`));
+                logger.log(chalk.red(`❌ Not found: ${fileName}`));
                 notFound.push(fileName);
                 continue;
             }
 
             const similarity = stringSimilarity(folderArtist, artistName);
-            if (similarity < 99) {
-                console.log(
+            if (similarity < 80) {
+                const msg =
                     chalk.red(
-                        `   ❌ Artist not match: ${fileName}\n   Folder: "${folderArtist}" | API: "${artistName}", similarity: ${similarity.toFixed(2)}%`
-                    )
-                );
+                        `❌ Artist not match: ${fileName}\n   Folder: "${folderArtist}" | API: "${artistName}", similarity: ${similarity.toFixed(2)}%`
+                    );
+                logger.log(msg);
                 notFound.push(fileName);
                 continue;
             }
 
             generateNFO({outputDir: nfoPath, video: videoData, audioDB: audioData});
-            console.log(chalk.green(`✅ NFO created: ${fileName}`));
+            logger.log(chalk.green(`✅ NFO created: ${fileName}`));
         } catch (err) {
-            console.error(chalk.red(`💥 Error at ${fileName}:`), err);
+            logger.log(chalk.red(`💥 Error at ${fileName}: ${err instanceof Error ? err.message : err}`), "error");
             notFound.push(fileName);
         }
     }
@@ -140,25 +141,17 @@ async function main() {
     console.log("\n");
 
     if (notFound.length > 0) {
-        console.log("\n");
-        console.log(
-            boxen(
-                chalk.red("🚫 Some files could not be processed:") +
-                "\n" +
-                notFound.map((f) => chalk.gray(`- ${f}`)).join("\n"),
-                {padding: 1, borderColor: "red", margin: 1, borderStyle: 'double'}
-            )
+        logger.logBox(
+            chalk.red("🚫 Some files could not be processed:") +
+            "\n" +
+            notFound.map((f) => chalk.gray(`- ${f}`)).join("\n"),
+            "red"
         );
     } else {
-        console.log(
-            boxen(chalk.green("🎉 All files processed successfully!"), {
-                padding: 1,
-                borderColor: "green",
-                margin: 1,
-                borderStyle: 'round'
-            })
-        );
+        logger.logBox(chalk.green("🎉 All files processed successfully!"), "green");
     }
+
+    logger.saveLogFile(notFound.length, files.length);
 }
 
 main().catch((err) => console.error(chalk.red(err)));
