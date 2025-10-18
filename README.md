@@ -1,5 +1,3 @@
-# 🎬 imvdb-to-kodi-nfo
-
 A command-line tool that automatically generates Kodi-compatible .nfo files for your music videos.
 It fetches metadata from IMVDB and TheAudioDB
 creating clean and fully formatted .nfo files ready for Kodi’s music video library.
@@ -22,7 +20,7 @@ creating clean and fully formatted .nfo files ready for Kodi’s music video lib
 - A free API key from IMVDB
 - Internet connection to fetch metadata
  
-- ## 📦 Installation
+## 📦 Installation
 
 Clone the repository and install dependencies:
 
